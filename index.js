@@ -30,19 +30,30 @@ async function connectToDatabase() {
 app.get('/test', async (req, res) => {
   try {
     const db = await connectToDatabase();
-    const collection = db.collection('userDB'); // Utilisez le nom de votre collection ici
+    const collection = db.collection('userDB');
     const users = await collection.find({}).toArray();
-    // Construire le tableau HTML
+
     let htmlResponse = '<table border="1">';
     htmlResponse +=
       '<tr><th>ID</th><th>Name</th><th>Email</th><th>Password</th><th>Age</th><th>Modifier</th><th>Supprimer</th></tr>';
     users.forEach((user) => {
       htmlResponse += `<tr><td>${user._id}</td><td>${user.username}</td><td>${user.email}</td><td>${user.password}</td><td>${user.age}</td>`;
-      htmlResponse += `<td><button onclick="modifier('${user._id}')">Modifier</button></td><td> <button onclick="supprimer('${user._id}')">Supprimer</button></td></tr>`;
+      htmlResponse += `<td><button onclick="modifier('${user._id}')">Modifier</button></td><td><button onclick="supprimer('${user._id}')">Supprimer</button></td></tr>`;
     });
     htmlResponse += '</table>';
 
-    // Envoyer la réponse au format HTML
+    htmlResponse += `
+   
+      <form action="/modifier" method="POST">  
+  <input type="text" name="_id" placeholder="ID de l'utilisateur"><br>
+  <input type="text" name="username" placeholder="Nom d'utilisateur"><br>
+  <input type="email" name="email" placeholder="Adresse email"><br>
+  <input type="password" name="password" placeholder="Mot de passe"><br>
+  <input type="number" name="age" placeholder="Âge"><br>
+  <button type="submit">Modifier Utilisateur</button>
+</form>
+    `;
+
     res.send(htmlResponse);
   } catch (error) {
     console.error(
@@ -52,6 +63,24 @@ app.get('/test', async (req, res) => {
     res
       .status(500)
       .send('Erreur lors de la récupération des utilisateurs depuis MongoDB');
+  }
+});
+app.post('/modifier', async (req, res) => {
+  try {
+    const { _id, username, email, password, age } = req.body;
+
+    const db = await connectToDatabase();
+    const collection = db.collection('userDB');
+
+    await collection.updateOne(
+      { _id: ObjectId(_id) },
+      { $set: { username, email, password, age } }
+    );
+
+    res.redirect('/test'); // Rediriger vers la page de liste des utilisateurs après la modification
+  } catch (error) {
+    console.error("Erreur lors de la modification de l'utilisateur :", error);
+    res.status(500).send("Erreur lors de la modification de l'utilisateur");
   }
 });
 
